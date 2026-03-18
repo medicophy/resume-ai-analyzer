@@ -36,7 +36,7 @@ Resume AI Analyzer is a modern web application that leverages local NLP algorith
 
 1.  **Clone the repository**
     ```bash
-    git clone https://github.com/medicophy/resume-ai-analyzer
+    git clone github.com/medicophy/resume-ai-analyzer
     cd resume-ai-analyzer
     ```
 
