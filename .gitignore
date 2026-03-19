@@ -2,3 +2,5 @@
 *.log
 .vscode/
 .idea/
+config.bat
+node_modules
