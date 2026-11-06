@@ -1,0 +1,24 @@
+Senior Backend Engineer
+Location: Remote
+
+About us
+We are a fast-growing startup; our mobile team uses Swift and Kotlin.
+
+What you'll do
+- Design and build REST APIs and microservices
+- Own deployments on AWS
+
+Requirements:
+- 5+ years of professional software engineering experience
+- 3+ years of Python
+- Strong SQL and PostgreSQL skills
+- Experience with Docker and Kubernetes
+- Bachelor's degree in Computer Science or equivalent experience
+
+Nice to have
+- Kafka or RabbitMQ
+- Terraform
+- Experience with GraphQL is a plus
+
+Benefits
+- Free Redis stickers and a learning budget
