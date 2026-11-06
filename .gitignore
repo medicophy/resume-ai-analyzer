@@ -2,3 +2,15 @@
 *.log
 .vscode/
 .idea/
+
+# Python
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.env
+
+# Node
+node_modules/
+dist/
