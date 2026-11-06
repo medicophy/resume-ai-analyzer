@@ -1,0 +1,11 @@
+John Smith
+john@example.com
+
+EXPERIENCE
+Junior Developer, Gamma Inc
+Jun 2022 - Present
+- Fixed bugs and attended meetings
+- Worked with the team on internal tools
+
+SKILLS
+Python, Django, FastAPI, SQL, PostgreSQL, Docker, Kubernetes, AWS, Kafka, Redis, Terraform, CI/CD, Git, Linux, React, TypeScript, GraphQL, MongoDB, Microservices, REST APIs

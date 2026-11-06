@@ -1,0 +1,23 @@
+Jane Doe
+jane.doe@example.com | +1 555 123 4567
+
+SUMMARY
+Backend engineer with a focus on Python services and cloud infrastructure.
+
+EXPERIENCE
+Senior Software Engineer, Acme Corp
+Oct 2019 - Present
+- Built REST APIs in Python and FastAPI serving 2M requests/day
+- Migrated services to Docker and Kubernetes on AWS, cutting deploy time by 60%
+- Tuned PostgreSQL queries and SQL reports for the finance team
+
+Software Engineer, Beta Ltd
+Jan 2016 - Sep 2019
+- Developed Django microservices backed by PostgreSQL
+- Set up CI/CD pipelines with Jenkins
+
+EDUCATION
+B.S. in Computer Science, State University, 2011 - 2015
+
+SKILLS
+Python, Django, FastAPI, SQL, PostgreSQL, Docker, Kubernetes, AWS, Git, Linux
