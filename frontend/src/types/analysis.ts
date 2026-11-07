@@ -77,6 +77,26 @@ export interface ExtractionInfo {
   quality: 'good' | 'low' | 'empty'
 }
 
+export interface AiRewrite {
+  original: string
+  suggested: string
+  skills: string[]
+  reason: string
+}
+
+export interface AiRequirement {
+  term: string
+  priority: Priority
+  found_in_resume: boolean
+}
+
+export interface AiReview {
+  summary: string
+  rewrites: AiRewrite[]
+  extra_requirements: AiRequirement[]
+  model: string
+}
+
 export interface AnalyzeResponse {
   filename: string
   overall_score: number | null

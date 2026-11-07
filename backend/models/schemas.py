@@ -80,6 +80,28 @@ class AtsReport(BaseModel):
     checks: list[AtsCheck]
 
 
+class AiRewrite(BaseModel):
+    original: str = Field(description="A line taken from the resume")
+    suggested: str = Field(description="Draft rewrite; only use it if it is true")
+    skills: list[str] = []
+    reason: str
+
+
+class AiRequirement(BaseModel):
+    term: str
+    priority: Priority
+    found_in_resume: bool = Field(description="Checked by text search in the resume, not by the AI")
+
+
+class AiReview(BaseModel):
+    summary: str
+    rewrites: list[AiRewrite]
+    extra_requirements: list[AiRequirement] = Field(
+        description="Requirements the AI found that the rule-based skill list doesn't cover"
+    )
+    model: str
+
+
 class ExtractionInfo(BaseModel):
     file_type: Literal["pdf", "docx"]
     page_count: int

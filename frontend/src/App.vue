@@ -1,17 +1,29 @@
 <script setup lang="ts">
-import { nextTick, ref } from 'vue'
+import { nextTick, onMounted, ref } from 'vue'
+import AiPanel from './components/AiPanel.vue'
 import AtsPanel from './components/AtsPanel.vue'
 import RequirementsPanel from './components/RequirementsPanel.vue'
 import ScoreOverview from './components/ScoreOverview.vue'
 import SkillsPanel from './components/SkillsPanel.vue'
 import SuggestionsPanel from './components/SuggestionsPanel.vue'
 import UploadForm from './components/UploadForm.vue'
-import { useAnalyze } from './composables/useAnalyze'
+import { useAiReview, useAnalyze } from './composables/useAnalyze'
 
 const { result, error, loading, analyze } = useAnalyze()
+const ai = useAiReview()
 const resultsEl = ref<HTMLElement | null>(null)
+// The AI review needs the same inputs as the analysis they belong to.
+const lastInput = ref<{ file: File; jobDescription: string } | null>(null)
+
+onMounted(ai.checkEnabled)
+
+function runAi() {
+  if (lastInput.value) ai.run(lastInput.value.file, lastInput.value.jobDescription)
+}
 
 async function onSubmit(file: File, jobDescription: string) {
+  ai.reset()
+  lastInput.value = { file, jobDescription }
   await analyze(file, jobDescription)
   if (result.value) {
     await nextTick()
@@ -62,6 +74,14 @@ async function onSubmit(file: File, jobDescription: string) {
           <SuggestionsPanel :suggestions="result.suggestions" />
           <RequirementsPanel :experience="result.experience" :education="result.education" />
         </div>
+
+        <AiPanel
+          :enabled="ai.enabled.value"
+          :loading="ai.loading.value"
+          :error="ai.error.value"
+          :review="ai.review.value"
+          @run="runAi"
+        />
 
         <SkillsPanel v-if="result.skills.length" :skills="result.skills" />
         <AtsPanel :ats="result.ats" />
