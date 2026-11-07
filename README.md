@@ -9,6 +9,7 @@ Resume AI Analyzer helps job seekers see how well a resume fits a specific job p
 - **Demonstrated vs. listed**: Skills shown in your experience or projects count fully; skills that only appear in a skills list earn partial credit, so keyword stuffing doesn't inflate the score.
 - **Experience and education checks**: Adds up employment dates (overlapping roles counted once, education dates excluded), checks per-skill year requirements ("3+ years of Python"), and compares degree levels, including "or equivalent experience".
 - **Actionable suggestions**: Prioritised advice on what to add or rewrite.
+- **ATS readability check**: A separate score for how easily applicant tracking systems can read the file: extractable text, contact details (including email hidden in a page header), standard section headings, employment dates and date format, multi-column layouts, tables, images, icon characters, length, bullet points and quantified results. Each problem comes with a fix.
 - **Robust document reading**: PyMuPDF with a pdfplumber fallback for PDFs, table-aware DOCX parsing, file-type checks based on content, and warnings for scanned or image-only resumes.
 - **Privacy first**: Stateless, in-memory processing. No database, no external APIs.
 
@@ -21,6 +22,8 @@ Resume AI Analyzer helps job seekers see how well a resume fits a specific job p
 | Education | 15% | Highest degree against the posting's requirement |
 
 Components the posting doesn't ask about are left out and the remaining weights re-normalised. If fewer than half of the required skills match, the overall score is capped at the skills score + 20, because experience in an unrelated field shouldn't make a poor fit look good.
+
+The **ATS readability score** is reported separately and doesn't change the match score: it describes the document, not the fit for the job. Each check is weighted by severity (critical 3, major 2, minor 1); a pass earns full credit, a warning half.
 
 ## Tech Stack
 
@@ -97,9 +100,11 @@ Settings are read from environment variables or `backend/.env` (see `backend/.en
 | `CORS_ORIGINS` | `http://localhost:5173` | Comma-separated frontend origins allowed to call the API |
 | `MAX_UPLOAD_MB` | `5` | Maximum resume file size |
 
+The frontend reads `VITE_API_URL` (default `http://localhost:8000`) from `frontend/.env` (see `frontend/.env.example`). If you serve the frontend from another address, add it to `CORS_ORIGINS`.
+
 ## API
 
-`POST /analyze` (multipart form): `file` (PDF or DOCX) and `job_description` (text). Returns the overall score, a per-component breakdown, every job skill with its status and evidence, experience and education checks, suggestions, and warnings.
+`POST /analyze` (multipart form): `file` (PDF or DOCX) and `job_description` (text). Returns the overall score, a per-component breakdown, every job skill with its status and evidence, experience and education checks, suggestions, warnings, and the ATS readability report.
 
 ## Project Structure
 
@@ -119,13 +124,19 @@ resume-ai-analyzer/
 │   │   ├── education.py      # Degree detection
 │   │   ├── matcher.py        # Skill matching with evidence
 │   │   ├── scorer.py         # Scores and suggestions
+│   │   ├── ats.py            # ATS readability checks
 │   │   └── analyzer.py       # End-to-end pipeline
 │   ├── data/skills.json      # Skills, aliases and related skills
 │   └── tests/
 ├── frontend/
 │   ├── src/
-│   │   ├── App.vue
-│   │   ├── style.css
+│   │   ├── App.vue                  # Page layout
+│   │   ├── components/              # Upload form, score overview, skills,
+│   │   │                            # experience/education, suggestions, ATS panels
+│   │   ├── composables/useAnalyze.ts  # API call, loading and error state
+│   │   ├── types/analysis.ts        # Response types (mirror backend schemas)
+│   │   ├── utils/format.ts          # Score colours and labels
+│   │   ├── style.css                # Tailwind and shared component classes
 │   │   └── main.ts
 │   ├── index.html
 │   ├── package.json

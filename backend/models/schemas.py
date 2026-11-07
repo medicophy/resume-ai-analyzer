@@ -66,6 +66,20 @@ class Suggestion(BaseModel):
     skill: str | None = None
 
 
+class AtsCheck(BaseModel):
+    id: str
+    label: str
+    status: Literal["pass", "warn", "fail"]
+    severity: Literal["critical", "major", "minor"]
+    message: str
+    fix: str | None = None
+
+
+class AtsReport(BaseModel):
+    score: float = Field(description="0-100: how easily applicant tracking systems can read the resume")
+    checks: list[AtsCheck]
+
+
 class ExtractionInfo(BaseModel):
     file_type: Literal["pdf", "docx"]
     page_count: int
@@ -83,6 +97,7 @@ class AnalyzeResponse(BaseModel):
     suggestions: list[Suggestion]
     warnings: list[str]
     extraction: ExtractionInfo
+    ats: AtsReport = Field(description="Resume readability for applicant tracking systems; separate from the job match score")
 
     # Kept for the existing frontend; prefer the fields above.
     match_score: float

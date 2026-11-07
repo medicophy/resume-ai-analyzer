@@ -181,9 +181,6 @@ def build_suggestions(matches: list[SkillMatch], experience: ExperienceSummary,
             "Nice-to-have skills not found: " + ", ".join(missing_pref[:6])
             + ". Add any you genuinely have.")))
 
-    if not resume.has_email:
-        out.append(Suggestion(priority="medium", message="No email address was found. Put your contact details at the top of the resume."))
-
     order = {"high": 0, "medium": 1, "low": 2}
     out.sort(key=lambda s: order[s.priority])
     return out[:10]

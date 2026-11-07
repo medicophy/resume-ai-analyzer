@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import date
 
 from models.schemas import AnalyzeResponse, ExtractionInfo
+from services.ats import run_ats_checks
 from services.extractor import extract_text
 from services.jd_parser import parse_job_description
 from services.matcher import match_skills, sections_recognized
@@ -82,6 +83,7 @@ def analyze(file_bytes: bytes, filename: str, job_description: str, today: date 
             char_count=extraction.char_count,
             quality=extraction.quality,
         ),
+        ats=run_ats_checks(extraction, resume),
         match_score=overall or 0.0,
         missing_keywords=[m.skill for m in matches if m.status == "missing"],
         char_count=extraction.char_count,

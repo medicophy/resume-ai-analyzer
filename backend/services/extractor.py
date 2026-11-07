@@ -11,6 +11,7 @@ from typing import Literal
 import fitz  # PyMuPDF
 import pdfplumber
 from docx import Document
+from docx.oxml.ns import qn
 from docx.table import Table
 from docx.text.paragraph import Paragraph
 
@@ -27,12 +28,24 @@ class UnsupportedFileError(ValueError):
 
 
 @dataclass
+class Layout:
+    """Layout features that commonly trip up applicant tracking systems."""
+
+    multi_column_pages: int = 0
+    image_count: int = 0
+    table_count: int = 0
+    # Text that only exists in page headers/footers (DOCX); many ATS ignore these areas.
+    header_footer_text: str = ""
+
+
+@dataclass
 class Extraction:
     text: str
     file_type: Literal["pdf", "docx"]
     page_count: int
     quality: Quality
     warnings: list[str] = field(default_factory=list)
+    layout: Layout = field(default_factory=Layout)
 
     @property
     def char_count(self) -> int:
@@ -64,12 +77,40 @@ def _quality(text: str, page_count: int) -> Quality:
     return "good"
 
 
-def _pdf_with_pymupdf(file_bytes: bytes) -> tuple[str, int]:
+def _page_has_columns(page) -> bool:
+    """True when the page has substantial text side by side in two columns.
+
+    A right-aligned date on the same line as a job title is common and harmless, so
+    only lines of 25+ characters count, and the right-hand column must hold a real
+    share of the page's text.
+    """
+    width = page.rect.width
+    lines: list[tuple[float, float, float, float, int]] = []  # x0, y0, x1, y1, chars
+    for block in page.get_text("dict")["blocks"]:
+        for line in block.get("lines", []):
+            text = "".join(span["text"] for span in line["spans"]).strip()
+            if text:
+                x0, y0, x1, y1 = line["bbox"]
+                lines.append((x0, y0, x1, y1, len(text)))
+    total_chars = sum(ln[4] for ln in lines)
+    if not total_chars:
+        return False
+    # Ignore short lines: right-aligned dates and locations are fine for an ATS.
+    left = [ln for ln in lines if ln[2] <= width * 0.6 and ln[4] >= 25]
+    right = [ln for ln in lines if ln[0] >= width * 0.4 and ln[4] >= 25]
+    side_by_side = sum(1 for r in right if any(lt[1] < r[3] and r[1] < lt[3] for lt in left))
+    return side_by_side >= 4 and sum(r[4] for r in right) >= 0.25 * total_chars
+
+
+def _pdf_with_pymupdf(file_bytes: bytes) -> tuple[str, int, Layout]:
     with fitz.open(stream=file_bytes, filetype="pdf") as doc:
-        # sort=True orders blocks top-to-bottom, left-to-right, which keeps
-        # multi-column resumes far more readable than the raw content order.
+        # sort=True orders blocks top-to-bottom, left-to-right.
         pages = [page.get_text("text", sort=True) for page in doc]
-        return "\n".join(pages), len(pages)
+        layout = Layout(
+            multi_column_pages=sum(1 for page in doc if _page_has_columns(page)),
+            image_count=sum(len(page.get_images(full=False)) for page in doc),
+        )
+        return "\n".join(pages), len(pages), layout
 
 
 def _pdf_with_pdfplumber(file_bytes: bytes) -> tuple[str, int]:
@@ -80,7 +121,7 @@ def _pdf_with_pdfplumber(file_bytes: bytes) -> tuple[str, int]:
 
 def _extract_pdf(file_bytes: bytes) -> Extraction:
     try:
-        text, page_count = _pdf_with_pymupdf(file_bytes)
+        text, page_count, layout = _pdf_with_pymupdf(file_bytes)
     except Exception as exc:  # corrupt or encrypted PDFs raise various errors
         raise UnsupportedFileError("The PDF could not be opened. It may be corrupt or password-protected.") from exc
 
@@ -106,7 +147,8 @@ def _extract_pdf(file_bytes: bytes) -> Extraction:
             "Very little text could be read from this PDF, so results may be incomplete. "
             "If it was scanned or exported as images, export it again as a text PDF."
         )
-    return Extraction(text=text, file_type="pdf", page_count=page_count, quality=quality, warnings=warnings)
+    return Extraction(text=text, file_type="pdf", page_count=page_count, quality=quality,
+                      warnings=warnings, layout=layout)
 
 
 def _docx_lines(doc) -> list[str]:
@@ -143,7 +185,24 @@ def _extract_docx(file_bytes: bytes) -> Extraction:
     page_count = max(1, round(len(lines) / 45))
     quality: Quality = "empty" if not text.strip() else "good"
     warnings = ["No text could be read from this DOCX file."] if quality == "empty" else []
-    return Extraction(text=text, file_type="docx", page_count=page_count, quality=quality, warnings=warnings)
+    return Extraction(text=text, file_type="docx", page_count=page_count, quality=quality,
+                      warnings=warnings, layout=_docx_layout(doc))
+
+
+def _docx_layout(doc) -> Layout:
+    header_footer: list[str] = []
+    for section in doc.sections:
+        for part in (section.header, section.footer, section.first_page_header, section.first_page_footer):
+            if part is not None and not part.is_linked_to_previous:
+                header_footer.extend(p.text for p in part.paragraphs if p.text.strip())
+                for table in part.tables:
+                    header_footer.extend(c.text for row in table.rows for c in row.cells if c.text.strip())
+    body = doc.element.body
+    return Layout(
+        table_count=len(body.findall(".//" + qn("w:tbl"))),
+        image_count=len(body.findall(".//" + qn("w:drawing"))) + len(body.findall(".//" + qn("w:pict"))),
+        header_footer_text="\n".join(dict.fromkeys(header_footer)),
+    )
 
 
 def extract_text(file_bytes: bytes, filename: str) -> Extraction:
