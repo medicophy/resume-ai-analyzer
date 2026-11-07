@@ -1,6 +1,6 @@
 # Resume AI Analyzer
 
-Resume AI Analyzer helps job seekers see how well a resume fits a specific job posting. Upload a PDF or DOCX resume, paste the job description, and get a score with a clear explanation: which required skills you demonstrate, which you only list, which are missing, whether you meet the years-of-experience and degree requirements, and what to change. Everything runs locally; nothing is sent to third-party services or stored.
+Resume AI Analyzer helps job seekers see how well a resume fits a specific job posting. Upload a PDF or DOCX resume, paste the job description, and get a score with a clear explanation: which required skills you demonstrate, which you only list, which are missing, whether you meet the years-of-experience and degree requirements, and what to change. The analysis runs on your own server and nothing is stored. Optional AI suggestions (via Groq) are only used when you click for them.
 
 ## Features
 
@@ -11,7 +11,8 @@ Resume AI Analyzer helps job seekers see how well a resume fits a specific job p
 - **Actionable suggestions**: Prioritised advice on what to add or rewrite.
 - **ATS readability check**: A separate score for how easily applicant tracking systems can read the file: extractable text, contact details (including email hidden in a page header), standard section headings, employment dates and date format, multi-column layouts, tables, images, icon characters, length, bullet points and quantified results. Each problem comes with a fix.
 - **Robust document reading**: PyMuPDF with a pdfplumber fallback for PDFs, table-aware DOCX parsing, file-type checks based on content, and warnings for scanned or image-only resumes.
-- **Privacy first**: Stateless, in-memory processing. No database, no external APIs.
+- **Optional AI suggestions (Groq)**: On request, a short assessment, draft rewrites of your bullet points, and requirements the skill list doesn't cover. Contact details are removed before anything is sent, rewrites must quote a real line from the resume, and whether each extra requirement appears in the resume is checked by text search rather than trusted from the AI. The match score stays rule-based.
+- **Privacy first**: Stateless, in-memory processing with no database. Nothing leaves the server unless you request AI suggestions; then the resume text (without email, phone numbers or links) and the job description are sent to Groq.
 
 ## How the score works
 
@@ -37,6 +38,7 @@ The **ATS readability score** is reported separately and doesn't change the matc
 - **Framework**: FastAPI (Python 3.12)
 - **Document parsing**: PyMuPDF, pdfplumber, python-docx
 - **Matching**: Rule-based skill taxonomy (`backend/data/skills.json`) with regex matching
+- **AI (optional)**: Groq's OpenAI-compatible API over httpx (default model `openai/gpt-oss-120b`, structured JSON output)
 - **Tests**: pytest
 
 ## Getting Started
@@ -99,12 +101,19 @@ Settings are read from environment variables or `backend/.env` (see `backend/.en
 |---|---|---|
 | `CORS_ORIGINS` | `http://localhost:5173` | Comma-separated frontend origins allowed to call the API |
 | `MAX_UPLOAD_MB` | `5` | Maximum resume file size |
+| `GROQ_API_KEY` | empty | Groq API key; leave empty to turn AI suggestions off |
+| `GROQ_MODEL` | `openai/gpt-oss-120b` | Groq model used for AI suggestions |
+| `GROQ_TIMEOUT_SECONDS` | `45` | How long to wait for the AI before giving up |
 
 The frontend reads `VITE_API_URL` (default `http://localhost:8000`) from `frontend/.env` (see `frontend/.env.example`). If you serve the frontend from another address, add it to `CORS_ORIGINS`.
 
 ## API
 
 `POST /analyze` (multipart form): `file` (PDF or DOCX) and `job_description` (text). Returns the overall score, a per-component breakdown, every job skill with its status and evidence, experience and education checks, suggestions, warnings, and the ATS readability report.
+
+`POST /ai-review` (same form fields): optional AI review with a summary, draft rewrites and extra requirements. Returns 503 when no Groq key is configured.
+
+`GET /`: health check; `ai_enabled` tells the frontend whether to offer AI suggestions.
 
 ## Project Structure
 
@@ -125,6 +134,7 @@ resume-ai-analyzer/
 │   │   ├── matcher.py        # Skill matching with evidence
 │   │   ├── scorer.py         # Scores and suggestions
 │   │   ├── ats.py            # ATS readability checks
+│   │   ├── ai_review.py      # Optional Groq review, redaction and validation
 │   │   └── analyzer.py       # End-to-end pipeline
 │   ├── data/skills.json      # Skills, aliases and related skills
 │   └── tests/
@@ -132,7 +142,7 @@ resume-ai-analyzer/
 │   ├── src/
 │   │   ├── App.vue                  # Page layout
 │   │   ├── components/              # Upload form, score overview, skills,
-│   │   │                            # experience/education, suggestions, ATS panels
+│   │   │                            # experience/education, suggestions, AI, ATS panels
 │   │   ├── composables/useAnalyze.ts  # API call, loading and error state
 │   │   ├── types/analysis.ts        # Response types (mirror backend schemas)
 │   │   ├── utils/format.ts          # Score colours and labels

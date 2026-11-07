@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from datetime import date
 
-from models.schemas import AnalyzeResponse, ExtractionInfo
+from models.schemas import AiReview, AnalyzeResponse, ExtractionInfo
+from services import ai_review as ai_review_service
 from services.ats import run_ats_checks
 from services.extractor import extract_text
 from services.jd_parser import parse_job_description
@@ -25,19 +26,27 @@ class AnalysisError(ValueError):
     """The inputs can't be analysed (unreadable resume, empty job description...)."""
 
 
-def analyze(file_bytes: bytes, filename: str, job_description: str, today: date | None = None) -> AnalyzeResponse:
+def _prepare(file_bytes: bytes, filename: str, job_description: str, today: date | None):
     if not job_description.strip():
         raise AnalysisError("Please paste a job description.")
-
     extraction = extract_text(file_bytes, filename)
     if extraction.quality == "empty":
         raise AnalysisError(extraction.warnings[0] if extraction.warnings else "No text could be read from the resume.")
-
     resume = parse_resume(extraction.text, today)
     jd = parse_job_description(job_description)
+    return extraction, resume, jd, match_skills(resume, jd)
+
+
+def ai_review(file_bytes: bytes, filename: str, job_description: str) -> AiReview:
+    """Optional AI review; uses the rule-based skill results as context."""
+    extraction, _, _, matches = _prepare(file_bytes, filename, job_description, None)
+    return ai_review_service.review(extraction.text, job_description, matches)
+
+
+def analyze(file_bytes: bytes, filename: str, job_description: str, today: date | None = None) -> AnalyzeResponse:
+    extraction, resume, jd, matches = _prepare(file_bytes, filename, job_description, today)
     warnings = list(extraction.warnings)
 
-    matches = match_skills(resume, jd)
     experience, experience_score = assess_experience(resume, jd)
     education, education_score = assess_education(resume, jd, experience.total_years)
 
