@@ -80,7 +80,7 @@ def test_review_is_validated_against_resume(ai_on, monkeypatch, jd_backend):
     body = resp.json()
     assert body["summary"].startswith("Strong backend fit")
     assert [r["original"] for r in body["rewrites"]] == [
-        "- Built REST APIs in Python and FastAPI serving 2M requests/day"
+        "• Built REST APIs in Python and FastAPI serving 2M requests/day"
     ]
     reqs = {r["term"]: r for r in body["extra_requirements"]}
     assert "Python" not in reqs

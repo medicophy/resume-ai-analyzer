@@ -16,6 +16,7 @@ import httpx
 
 from config import settings
 from models.schemas import AiRequirement, AiReview, AiRewrite, SkillMatch
+from services.bullets import strip_bullet
 from services.skills import load_catalog
 
 logger = logging.getLogger(__name__)
@@ -119,7 +120,7 @@ def _user_message(resume_text: str, job_description: str, matches: list[SkillMat
 # --- validation -------------------------------------------------------------------------
 
 def _norm(s: str) -> str:
-    s = re.sub(r"^\s*(?:[-•*▪●◦‣–]|\d+[.)])\s+", "", s)
+    s = re.sub(r"^\s*\(?\d{1,2}[.)]\s+", "", strip_bullet(s))
     return re.sub(r"\s+", " ", s).strip().lower()
 
 

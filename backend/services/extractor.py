@@ -15,6 +15,8 @@ from docx.oxml.ns import qn
 from docx.table import Table
 from docx.text.paragraph import Paragraph
 
+from services.bullets import normalize_bullets
+
 logger = logging.getLogger(__name__)
 
 Quality = Literal["good", "low", "empty"]
@@ -151,6 +153,25 @@ def _extract_pdf(file_bytes: bytes) -> Extraction:
                       warnings=warnings, layout=layout)
 
 
+def _is_list_paragraph(paragraph: Paragraph) -> bool:
+    """True for bulleted or numbered Word list items (direct or via the paragraph style)."""
+    p_pr = paragraph._p.pPr
+    if p_pr is not None and p_pr.numPr is not None:
+        num_id = p_pr.numPr.numId
+        # numId 0 explicitly switches numbering off.
+        return not (num_id is not None and num_id.val == 0)
+    style = paragraph.style
+    depth = 0
+    while style is not None and depth < 10:
+        s_pr = style.element.pPr
+        if s_pr is not None and s_pr.numPr is not None:
+            return True
+        if style.name and style.name.lower().startswith(("list bullet", "list number")):
+            return True
+        style, depth = style.base_style, depth + 1
+    return False
+
+
 def _docx_lines(doc) -> list[str]:
     """Paragraph and table text in document order (many templates lay out content in tables)."""
     lines: list[str] = []
@@ -159,7 +180,8 @@ def _docx_lines(doc) -> list[str]:
         for child in container.iter_inner_content():
             if isinstance(child, Paragraph):
                 if child.text.strip():
-                    lines.append(child.text)
+                    # Word draws list bullets from numbering, so the glyph isn't in the text.
+                    lines.append(f"• {child.text.strip()}" if _is_list_paragraph(child) else child.text)
             elif isinstance(child, Table):
                 for row in child.rows:
                     seen: set[int] = set()
@@ -207,4 +229,7 @@ def _docx_layout(doc) -> Layout:
 
 def extract_text(file_bytes: bytes, filename: str) -> Extraction:
     file_type = detect_file_type(file_bytes, filename)
-    return _extract_pdf(file_bytes) if file_type == "pdf" else _extract_docx(file_bytes)
+    extraction = _extract_pdf(file_bytes) if file_type == "pdf" else _extract_docx(file_bytes)
+    # One bullet form for everything downstream (parsing, ATS checks, AI validation).
+    extraction.text = normalize_bullets(extraction.text)
+    return extraction

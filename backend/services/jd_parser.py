@@ -6,6 +6,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Literal
 
+from services.bullets import is_bullet
 from services.education import DEGREE_RANK, degrees_in
 from services.skills import SkillCatalog, load_catalog
 
@@ -95,7 +96,7 @@ class JobRequirements:
 
 def _heading_context(line: str) -> Context | None:
     stripped = line.strip()
-    if len(stripped) > 60 or re.match(r"^\s*[-•*▪●◦‣]", stripped):
+    if len(stripped) > 60 or is_bullet(stripped):
         return None
     # "Location: Remote" is a labelled value, not a heading.
     if ":" in stripped and stripped.split(":", 1)[1].strip():
