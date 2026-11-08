@@ -6,6 +6,7 @@ import re
 from dataclasses import dataclass, field
 from datetime import date
 
+from services.bullets import is_bullet, normalize_bullets
 from services.dates import DATE_RANGE, DateRange, find_date_ranges
 from services.education import highest_degree
 
@@ -31,7 +32,6 @@ _HEADING_LOOKUP = {alias: name for name, aliases in SECTION_HEADINGS.items() for
 # Sections that show skills being used rather than merely listed.
 APPLIED_SECTIONS = ("experience", "projects")
 
-_BULLET = re.compile(r"^\s*(?:[-•*▪●◦‣–]|\d+[.)])\s+")
 
 
 @dataclass
@@ -60,7 +60,7 @@ class ParsedResume:
         return "\n".join(self.sections.get(name, []))
 
     def bullets(self, section: str = "experience") -> list[str]:
-        return [ln for ln in self.sections.get(section, []) if _BULLET.match(ln)]
+        return [ln for ln in self.sections.get(section, []) if is_bullet(ln)]
 
 
 def _heading_name(line: str) -> str | None:
@@ -97,7 +97,7 @@ def _experience_entries(lines: list[str], today: date | None) -> list[Experience
         if found:
             entry = ExperienceEntry(dates=found[0], lines=[line])
             prev = lines[i - 1] if i > 0 else None
-            if prev and not _BULLET.match(prev) and not DATE_RANGE.search(prev) and len(prev) <= 80:
+            if prev and not is_bullet(prev) and not DATE_RANGE.search(prev) and len(prev) <= 80:
                 if entries and entries[-1].lines and entries[-1].lines[-1] == prev:
                     entries[-1].lines.pop()
                 entry.lines.insert(0, prev)
@@ -108,6 +108,7 @@ def _experience_entries(lines: list[str], today: date | None) -> list[Experience
 
 
 def parse_resume(text: str, today: date | None = None) -> ParsedResume:
+    text = normalize_bullets(text)
     sections = split_sections(text)
     experience_lines = sections.get("experience", [])
     entries = _experience_entries(experience_lines, today)

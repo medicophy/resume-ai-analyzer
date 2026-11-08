@@ -9,6 +9,7 @@ from __future__ import annotations
 import re
 
 from models.schemas import AtsCheck, AtsReport
+from services.bullets import is_bullet
 from services.extractor import Extraction
 from services.resume_parser import ParsedResume
 
@@ -19,7 +20,6 @@ EMAIL = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
 # Icon fonts (Font Awesome etc.) use the Unicode private use area; emoji live above U+1F000.
 ICON_CHARS = re.compile("[-\U0001f000-\U0001faff☀-➿]")
 QUANTIFIED = re.compile(r"\d|%|\$|€|£")
-_BULLET = re.compile(r"^\s*(?:[-•*▪●◦‣–]|\d+[.)])\s+")
 _MONTH = re.compile(r"\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)", re.IGNORECASE)
 
 
@@ -144,7 +144,7 @@ def _bullets(resume: ParsedResume) -> list[AtsCheck]:
     lines = resume.sections.get("experience", [])
     if not lines:
         return []
-    bullets = [ln for ln in lines if _BULLET.match(ln)]
+    bullets = [ln for ln in lines if is_bullet(ln)]
     checks = []
     if len(bullets) < 3:
         checks.append(_check("bullets", "Bullet points", "warn", "minor",
