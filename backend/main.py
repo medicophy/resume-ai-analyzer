@@ -3,22 +3,33 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from web.routes import router
 from config import settings
+from web.routes import router
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
-app = FastAPI(title="Resume AI Analyzer")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origin_list,
-    allow_credentials=False,
-    allow_methods=["GET", "POST"],
-    allow_headers=["*"],
-)
+def create_app(enable_docs: bool = True) -> FastAPI:
+    """Build the API. The public deployment turns the interactive docs off."""
+    app = FastAPI(
+        title="Resume AI Analyzer",
+        docs_url="/docs" if enable_docs else None,
+        redoc_url="/redoc" if enable_docs else None,
+        openapi_url="/openapi.json" if enable_docs else None,
+    )
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origin_list,
+        allow_credentials=False,
+        allow_methods=["GET", "POST"],
+        allow_headers=["*"],
+    )
+    app.include_router(router)
+    return app
 
-app.include_router(router)
+
+# Local development: docs at http://localhost:8000/docs
+app = create_app()
 
 
 if __name__ == "__main__":

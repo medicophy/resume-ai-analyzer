@@ -13,8 +13,8 @@ if str(BACKEND_DIR) not in sys.path:
 
 from fastapi import FastAPI  # noqa: E402
 
-from main import app as backend_app  # noqa: E402
+from main import create_app  # noqa: E402
 
-# The public wrapper exposes no docs or OpenAPI schema; the mounted backend serves the API.
+# Neither the wrapper nor the mounted backend exposes interactive docs or the OpenAPI schema.
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
-app.mount("/api", backend_app)
+app.mount("/api", create_app(enable_docs=False))
