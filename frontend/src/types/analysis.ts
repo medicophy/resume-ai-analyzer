@@ -109,3 +109,12 @@ export interface AnalyzeResponse {
   extraction: ExtractionInfo
   ats: AtsReport
 }
+
+// UI-only: an entry in the results page's section navigation.
+export interface NavItem {
+  id: string
+  label: string
+  icon: import('../components/ui/AppIcon').IconName
+  badge?: string
+  badgeClass?: string
+}

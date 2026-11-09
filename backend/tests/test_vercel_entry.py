@@ -66,7 +66,15 @@ def test_vercel_config_matches_entry_point():
     assert "--mode vercel" in config["buildCommand"]
     env_vercel = (REPO_ROOT / "frontend" / ".env.vercel").read_text(encoding="utf-8")
     assert "VITE_API_URL=/api" in env_vercel
-    assert {r["source"] for r in config["rewrites"]} == {"/api", "/api/(.*)"}
+    sources = [r["source"] for r in config["rewrites"]]
+    # API rules first; the page fallback (client-side routes like /results) must come last
+    # and must never catch /api paths.
+    assert sources[:2] == ["/api", "/api/(.*)"]
+    assert config["rewrites"][-1]["destination"] == "/index.html"
+    import re
+    fallback = re.compile("^" + sources[-1] + "$")
+    assert fallback.match("/results") and fallback.match("/privacy") and fallback.match("/")
+    assert not fallback.match("/api/analyze") and not fallback.match("/api")
     excluded = config["functions"]["api/index.py"]["excludeFiles"]
     assert "backend/data" not in excluded  # the skill list must ship with the function
 
