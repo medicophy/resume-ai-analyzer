@@ -38,8 +38,18 @@ def test_analyze_under_api_prefix(jd_backend):
 
 
 def test_no_public_docs():
-    assert client.get("/docs").status_code == 404
-    assert client.get("/openapi.json").status_code == 404
+    # Both the wrapper and the mounted backend must hide them (the backend's own
+    # /docs would otherwise appear at /api/docs).
+    for path in ("/docs", "/openapi.json", "/api/docs", "/api/redoc", "/api/openapi.json"):
+        assert client.get(path).status_code == 404, path
+
+
+def test_local_app_keeps_docs():
+    from main import app as local_app
+
+    local = TestClient(local_app)
+    assert local.get("/docs").status_code == 200
+    assert local.get("/openapi.json").status_code == 200
 
 
 def test_upload_limit_fits_vercel():
