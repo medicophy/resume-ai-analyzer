@@ -1,6 +1,8 @@
-# Resume AI Analyzer
+# HireLens
 
-Resume AI Analyzer helps job seekers see how well a resume fits a specific job posting. Upload a PDF or DOCX resume, paste the job description, and get a score with a clear explanation: which required skills you demonstrate, which you only list, which are missing, whether you meet the years-of-experience and degree requirements, and what to change. The analysis runs on your own server and nothing is stored. Optional AI suggestions (via Groq) are only used when you click for them.
+Resume analyzer (repository: `resume-ai-analyzer`). Live at https://resume-ai-analyzer-beta.vercel.app
+
+HireLens helps job seekers see how well a resume fits a specific job posting. Upload a PDF or DOCX resume, paste the job description, and get a score with a clear explanation: which required skills you demonstrate, which you only list, which are missing, whether you meet the years-of-experience and degree requirements, and what to change. The analysis runs on your own server and nothing is stored. Optional AI suggestions (via Groq) are only used when you click for them.
 
 ## Features
 
@@ -31,7 +33,9 @@ The **ATS readability score** is reported separately and doesn't change the matc
 ### Frontend
 - **Framework**: Vue 3 (Composition API)
 - **Language**: TypeScript
-- **Styling**: Tailwind CSS v4
+- **Routing**: Vue Router (`/`, `/results`, `/how-it-works`, `/privacy`)
+- **Styling**: Tailwind CSS v4 with CSS-variable theme tokens ("Espresso & Sand" palette, light and dark)
+- **Fonts**: Inter and Space Grotesk bundled via Fontsource (no third-party font requests)
 - **Build Tool**: Vite
 
 ### Backend
@@ -143,13 +147,20 @@ resume-ai-analyzer/
 │   └── tests/
 ├── frontend/
 │   ├── src/
-│   │   ├── App.vue                  # Page layout
-│   │   ├── components/              # Upload form, score overview, skills,
-│   │   │                            # experience/education, suggestions, AI, ATS panels
-│   │   ├── composables/useAnalyze.ts  # API call, loading and error state
+│   │   ├── App.vue                  # Site frame: header, page, footer
+│   │   ├── router.ts                # Pages and page titles
+│   │   ├── views/                   # Home, Results, How scoring works, Privacy
+│   │   ├── components/
+│   │   │   ├── layout/              # Header, footer, logo
+│   │   │   ├── home/                # Upload card, analyzing progress
+│   │   │   ├── results/             # Sidebar and report sections
+│   │   │   └── ui/AppIcon.ts        # Line icon set
+│   │   ├── stores/analysis.ts       # Report state (kept in sessionStorage for the tab)
+│   │   ├── lib/api.ts               # Calls to the backend
+│   │   ├── composables/useTheme.ts  # Light/dark switch
 │   │   ├── types/analysis.ts        # Response types (mirror backend schemas)
-│   │   ├── utils/format.ts          # Score colours and labels
-│   │   ├── style.css                # Tailwind and shared component classes
+│   │   ├── utils/format.ts          # Labels, colours, report headline and summary
+│   │   ├── style.css                # Theme tokens and shared component classes
 │   │   └── main.ts
 │   ├── index.html
 │   ├── package.json
@@ -167,6 +178,8 @@ The repository deploys as one Vercel project: the frontend is built as static fi
 3. Import the repository. Leave the root directory as the repository root; `vercel.json` sets the build command, output directory and routing, so no framework preset is needed.
 4. Optional, for AI suggestions: under **Settings → Environment Variables** add `GROQ_API_KEY` (type *Secret*). Redeploy after adding or changing variables.
 5. Deploy. Every pull request gets its own preview deployment; merging to `main` updates production.
+
+`vercel.json` also sends every non-`/api` path to `index.html`, so pages such as `/results` load correctly on refresh.
 
 Limits on the free Hobby plan: personal, non-commercial use only; uploads up to 4 MB (Vercel's request limit is 4.5 MB); the first request after a quiet period can be slower while the function starts. The public site uses your Groq key for anyone who clicks **Get AI suggestions**, so leave `GROQ_API_KEY` unset if you don't want that.
 
