@@ -12,7 +12,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=ENV_FILE, extra="ignore")
 
     cors_origins: str = "http://localhost:5173"
-    max_upload_mb: int = 5
+    # Vercel rejects request bodies over 4.5 MB, so stay below that.
+    max_upload_mb: int = 4
 
     # Optional AI suggestions via Groq. Leave the key empty to disable the feature.
     groq_api_key: SecretStr | None = None

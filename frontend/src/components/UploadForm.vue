@@ -4,7 +4,7 @@ import { computed, ref } from 'vue'
 const props = defineProps<{ loading: boolean }>()
 const emit = defineEmits<{ submit: [file: File, jobDescription: string] }>()
 
-const MAX_MB = 5
+const MAX_MB = 4
 const MAX_JD = 30000
 const ACCEPTED = ['.pdf', '.docx']
 

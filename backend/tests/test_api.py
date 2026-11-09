@@ -49,12 +49,12 @@ def test_oversized_file(jd_backend, monkeypatch):
 
 
 def test_internal_errors_are_not_leaked(jd_backend, monkeypatch):
-    import api.routes
+    import web.routes
 
     def boom(*args, **kwargs):
         raise RuntimeError("secret internal detail")
 
-    monkeypatch.setattr(api.routes, "analyze", boom)
+    monkeypatch.setattr(web.routes, "analyze", boom)
     resp = post(make_pdf("Python"), "cv.pdf", jd_backend)
     assert resp.status_code == 500
     assert "secret" not in resp.json()["detail"]
