@@ -100,7 +100,7 @@ Settings are read from environment variables or `backend/.env` (see `backend/.en
 | Variable | Default | Purpose |
 |---|---|---|
 | `CORS_ORIGINS` | `http://localhost:5173` | Comma-separated frontend origins allowed to call the API |
-| `MAX_UPLOAD_MB` | `5` | Maximum resume file size |
+| `MAX_UPLOAD_MB` | `4` | Maximum resume file size (Vercel rejects requests over 4.5 MB) |
 | `GROQ_API_KEY` | empty | Groq API key; leave empty to turn AI suggestions off |
 | `GROQ_MODEL` | `openai/gpt-oss-120b` | Groq model used for AI suggestions |
 | `GROQ_TIMEOUT_SECONDS` | `45` | How long to wait for the AI before giving up |
@@ -119,10 +119,13 @@ The frontend reads `VITE_API_URL` (default `http://localhost:8000`) from `fronte
 
 ```
 resume-ai-analyzer/
+├── api/index.py              # Vercel entry point: serves the backend under /api
+├── vercel.json               # Vercel build, function and routing config
+├── requirements.txt          # Backend runtime dependencies (used by Vercel)
 ├── backend/
 │   ├── main.py               # App setup (CORS, routes)
 │   ├── config.py             # Settings from environment / .env
-│   ├── api/routes.py         # HTTP endpoints and error handling
+│   ├── web/routes.py         # HTTP endpoints and error handling
 │   ├── models/schemas.py     # Response models
 │   ├── services/
 │   │   ├── extractor.py      # PDF/DOCX text extraction
@@ -154,6 +157,18 @@ resume-ai-analyzer/
 │   └── vite.config.ts
 └── README.md
 ```
+
+## Deploying to Vercel
+
+The repository deploys as one Vercel project: the frontend is built as static files and the backend runs as a Python function under `/api` on the same domain, so no CORS setup is needed.
+
+1. Sign in to [Vercel](https://vercel.com) with GitHub and choose **Add New → Project**.
+2. When asked to install the Vercel GitHub App, choose **Only select repositories** and pick this repository only.
+3. Import the repository. Leave the root directory as the repository root; `vercel.json` sets the build command, output directory and routing, so no framework preset is needed.
+4. Optional, for AI suggestions: under **Settings → Environment Variables** add `GROQ_API_KEY` (type *Secret*). Redeploy after adding or changing variables.
+5. Deploy. Every pull request gets its own preview deployment; merging to `main` updates production.
+
+Limits on the free Hobby plan: personal, non-commercial use only; uploads up to 4 MB (Vercel's request limit is 4.5 MB); the first request after a quiet period can be slower while the function starts. The public site uses your Groq key for anyone who clicks **Get AI suggestions**, so leave `GROQ_API_KEY` unset if you don't want that.
 
 ## Contributing
 
